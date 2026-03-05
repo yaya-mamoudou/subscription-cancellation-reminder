@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: /users/{userId}/subscriptions
+    // Document ID: {subscriptionId}
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - endDate: string (required, ISO 8601 date format)
+    //   - reminderDays: number (required, 1-30)
+    //   - cancelUrl: string (optional, URL format)
+    //   - color: string (required, hex format)
+    //   - userId: string (required, matches owner)
+    //   - createdAt: string (required, ISO 8601 date-time format)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "yayamamoudou0@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidSubscription(data) {
+      return data.keys().hasAll(['name', 'endDate', 'reminderDays', 'color', 'userId', 'createdAt']) &&
+             data.keys().hasOnly(['name', 'endDate', 'reminderDays', 'color', 'userId', 'createdAt', 'cancelUrl', 'updatedAt']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.endDate is string && data.endDate.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.reminderDays is number && data.reminderDays >= 1 && data.reminderDays <= 30 &&
+             data.color is string && data.color.matches("^#[0-9A-Fa-f]{6}$") &&
+             data.userId == request.auth.uid &&
+             data.createdAt is string && data.createdAt.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$") &&
+             (!('cancelUrl' in data) || (data.cancelUrl is string && data.cancelUrl.matches("^https?://.*"))) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User profile rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.role == 'user';
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+    }
+
+    // Subscription rules
+    match /users/{userId}/subscriptions/{subscriptionId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidSubscription(request.resource.data);
+      allow update: if isOwner(userId) && isValidSubscription(request.resource.data) && 
+                      request.resource.data.userId == resource.data.userId &&
+                      request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+  }
+}

@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #1a73e8; /* Google Blue */
+  --color-surface: #ffffff;
+  --color-surface-raised: #f8f9fa;
+  --color-border: #e8eaed;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900 antialiased transition-colors duration-300;
+    background-image: 
+      radial-gradient(circle at 50% -20%, rgba(26, 115, 232, 0.05), transparent 80%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    @apply bg-[#0a0a0a] text-gray-100;
+    background-image: 
+      radial-gradient(circle at 50% -20%, rgba(26, 115, 232, 0.15), transparent 80%);
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid #e8eaed;
+  }
+
+  .dark .glass {
+    background: rgba(20, 20, 20, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(to bottom right, #202124 30%, #5f6368);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .dark .text-gradient {
+    background: linear-gradient(to bottom right, #ffffff 30%, #9ca3af);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
